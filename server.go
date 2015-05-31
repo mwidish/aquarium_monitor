@@ -47,10 +47,24 @@ func LoginHandler() func(w http.ResponseWriter, req *http.Request) {
 		pw := req.FormValue("password")
 
 		redirectTarget := "/"
-		if user == "fishies" && pw == "lefty" {
-			setSession(user, w)
-			redirectTarget = "/aquarium"
+		sql := SqlDB()
+
+		rows, err := sql.Query("select count(*) from users where name='?' and pw='?'", user, pw)
+		if err != nil {
+			log.Fatal(err)
 		}
+		defer rows.Close()
+		for rows.Next() {
+			var count int32
+			if err := rows.Scan(&count); err != nil {
+				log.Fatal(err)
+			}
+			if count == 1 {
+				setSession(user, w)
+				redirectTarget = "/aquarium"
+			}
+		}
+
 		http.Redirect(w, req, redirectTarget, 302)
 
 	}
